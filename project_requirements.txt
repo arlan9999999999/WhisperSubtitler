@@ -1,0 +1,14 @@
+flask>=2.0.0
+gunicorn>=20.0.0
+openai-whisper>=20231117
+torch>=2.0.0
+numpy>=1.20.0
+ffmpeg-python>=0.2.0
+werkzeug>=2.0.0
+python-dotenv>=1.0.0
+email-validator>=2.0.0
+flask-sqlalchemy>=3.0.0
+psycopg2-binary>=2.9.0
+
+# System dependencies
+# ffmpeg should be installed via system package manager

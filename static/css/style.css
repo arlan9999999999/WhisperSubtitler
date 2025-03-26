@@ -1,0 +1,61 @@
+/* Main styles */
+body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    flex: 1;
+}
+
+/* File upload area */
+.file-upload-area {
+    border: 2px dashed var(--bs-border-color);
+    border-radius: 8px;
+    padding: 2.5rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.file-upload-area:hover, .file-upload-area.dragover {
+    border-color: var(--bs-primary);
+    background-color: rgba(13, 110, 253, 0.05);
+}
+
+/* Transcript preview */
+.transcript-preview {
+    max-height: 300px;
+    overflow-y: auto;
+    white-space: pre-line;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    padding: 0.5rem;
+}
+
+.transcript-preview.expanded {
+    max-height: none;
+}
+
+/* Step containers */
+.step-container {
+    padding: 1rem;
+    border-radius: 0.5rem;
+    transition: all 0.3s ease;
+}
+
+/* Loading spinner */
+.spinner-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 2rem 0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .file-upload-area {
+        padding: 1.5rem;
+    }
+}
