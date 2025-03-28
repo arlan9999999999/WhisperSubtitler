@@ -3,18 +3,70 @@
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-md-10">
+        <!-- Whisper App Features -->
+        <div class="row mb-4">
+            <div class="col-md-4 mb-3">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-cogs fa-3x mb-3 text-primary"></i>
+                        <h5 class="card-title">Local Processing</h5>
+                        <p class="card-text">All transcription happens on your device - no data sent to external servers.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-language fa-3x mb-3 text-primary"></i>
+                        <h5 class="card-title">Multilingual Support</h5>
+                        <p class="card-text">Transcribe audio in 100+ languages with excellent accuracy.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-file-export fa-3x mb-3 text-primary"></i>
+                        <h5 class="card-title">Multiple Formats</h5>
+                        <p class="card-text">Download subtitles in SRT, WebVTT, or plain text format.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main App Card -->
         <div class="card shadow">
             <div class="card-header">
                 <h2 class="text-center mb-0">
-                    <i class="fas fa-file-audio me-2"></i>
-                    Subtitle Generator
+                    <i class="fas fa-file-audio me-2 text-primary"></i>
+                    <span class="text-gradient">Subtitle Generator</span>
                 </h2>
             </div>
-            <div class="card-body">
+            <div class="card-body p-4">
+                <!-- Step navigation -->
+                <div class="step-navigation mb-4">
+                    <div class="d-flex justify-content-center">
+                        <div class="step-indicator active" id="stepIndicator1">
+                            <div class="step-badge">1</div>
+                            <span class="step-label d-none d-md-block">Upload</span>
+                        </div>
+                        <div class="step-line"></div>
+                        <div class="step-indicator" id="stepIndicator2">
+                            <div class="step-badge">2</div>
+                            <span class="step-label d-none d-md-block">Configure</span>
+                        </div>
+                        <div class="step-line"></div>
+                        <div class="step-indicator" id="stepIndicator3">
+                            <div class="step-badge">3</div>
+                            <span class="step-label d-none d-md-block">Download</span>
+                        </div>
+                    </div>
+                </div>
+                
                 <!-- Step 1: Upload File -->
-                <div class="step-container mb-4" id="step1">
-                    <h3 class="card-title">
-                        <span class="badge bg-primary me-2">1</span>
+                <div class="step-container" id="step1">
+                    <h3 class="card-title mb-3">
+                        <span class="badge me-2">1</span>
                         Upload Audio/Video File
                     </h3>
                     <div class="alert alert-info">
@@ -27,7 +79,7 @@
                             <div class="file-upload-container">
                                 <label for="fileInput" class="form-label visually-hidden">Choose File</label>
                                 <div class="file-upload-area" id="dropArea">
-                                    <i class="fas fa-cloud-upload-alt fa-3x mb-3"></i>
+                                    <i class="fas fa-cloud-upload-alt fa-3x mb-3 text-primary"></i>
                                     <p class="mb-2">Drag and drop your file here</p>
                                     <p class="text-muted small">or</p>
                                     <input type="file" id="fileInput" class="visually-hidden" accept=".mp3,.mp4,.wav,.avi,.mov,.flac,.ogg,.m4a,.webm">
@@ -52,52 +104,79 @@
                             <button type="submit" class="btn btn-primary" id="uploadBtn" disabled>
                                 <i class="fas fa-upload me-1"></i> Upload File
                             </button>
+                            <button type="button" class="btn btn-outline-primary ms-2" data-bs-toggle="modal" data-bs-target="#instructionsModal">
+                                <i class="fas fa-question-circle me-1"></i> Help
+                            </button>
                         </div>
                     </form>
                 </div>
                 
                 <!-- Step 2: Configure and Process -->
-                <div class="step-container mb-4 d-none" id="step2">
-                    <h3 class="card-title">
-                        <span class="badge bg-primary me-2">2</span>
+                <div class="step-container d-none" id="step2">
+                    <h3 class="card-title mb-3">
+                        <span class="badge me-2">2</span>
                         Configure and Process
                     </h3>
+                    
+                    <div class="mb-4">
+                        <div class="alert alert-info">
+                            <i class="fas fa-lightbulb me-2"></i>
+                            <strong>Tip:</strong> For best results, specify the language and use a larger model for complex audio
+                        </div>
+                    </div>
+                    
                     <form id="transcribeForm">
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="modelSelect" class="form-label">Model Size</label>
-                                <select class="form-select" id="modelSelect" name="model">
-                                    {% for model_id, model_name in models.items() %}
-                                    <option value="{{ model_id }}" {% if model_id == "base" %}selected{% endif %}>{{ model_name }}</option>
-                                    {% endfor %}
-                                </select>
-                                <div class="form-text">Larger models are more accurate but slower.</div>
+                        <div class="row mb-4">
+                            <div class="col-md-6 mb-3 mb-md-0">
+                                <div class="card h-100">
+                                    <div class="card-body">
+                                        <h5 class="card-title"><i class="fas fa-microchip me-2 text-primary"></i>Model Size</h5>
+                                        <select class="form-select" id="modelSelect" name="model">
+                                            {% for model_id, model_name in models.items() %}
+                                            <option value="{{ model_id }}" {% if model_id == "base" %}selected{% endif %}>{{ model_name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <div class="form-text mt-2">Larger models are more accurate but slower.</div>
+                                    </div>
+                                </div>
                             </div>
                             <div class="col-md-6">
-                                <label for="languageSelect" class="form-label">Language (optional)</label>
-                                <select class="form-select" id="languageSelect" name="language">
-                                    <option value="">Auto-detect language</option>
-                                    {% for lang_code, lang_name in languages.items() %}
-                                    <option value="{{ lang_code }}">{{ lang_name }}</option>
-                                    {% endfor %}
-                                </select>
-                                <div class="form-text">Specifying the language can improve accuracy.</div>
+                                <div class="card h-100">
+                                    <div class="card-body">
+                                        <h5 class="card-title"><i class="fas fa-globe me-2 text-primary"></i>Language</h5>
+                                        <select class="form-select" id="languageSelect" name="language">
+                                            <option value="">Auto-detect language</option>
+                                            {% for lang_code, lang_name in languages.items() %}
+                                            <option value="{{ lang_code }}">{{ lang_name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <div class="form-text mt-2">Specifying the language improves accuracy.</div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         
-                        <div class="mb-3">
-                            <label class="form-label">Task</label>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="task" id="taskTranscribe" value="transcribe" checked>
-                                <label class="form-check-label" for="taskTranscribe">
-                                    Transcribe (generate subtitles in original language)
-                                </label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="task" id="taskTranslate" value="translate">
-                                <label class="form-check-label" for="taskTranslate">
-                                    Translate (translate to English)
-                                </label>
+                        <div class="card mb-4">
+                            <div class="card-body">
+                                <h5 class="card-title mb-3"><i class="fas fa-tasks me-2 text-primary"></i>Task</h5>
+                                <div class="d-flex flex-wrap gap-3">
+                                    <div class="form-check form-check-inline task-option">
+                                        <input class="form-check-input" type="radio" name="task" id="taskTranscribe" value="transcribe" checked>
+                                        <label class="form-check-label d-flex flex-column align-items-center" for="taskTranscribe">
+                                            <i class="fas fa-comment-alt fa-2x mb-2 text-primary"></i>
+                                            <span>Transcribe</span>
+                                            <small class="text-muted">Generate subtitles in original language</small>
+                                        </label>
+                                    </div>
+                                    <div class="form-check form-check-inline task-option">
+                                        <input class="form-check-input" type="radio" name="task" id="taskTranslate" value="translate">
+                                        <label class="form-check-label d-flex flex-column align-items-center" for="taskTranslate">
+                                            <i class="fas fa-language fa-2x mb-2 text-primary"></i>
+                                            <span>Translate</span>
+                                            <small class="text-muted">Convert speech to English subtitles</small>
+                                        </label>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         
@@ -111,28 +190,36 @@
                         </div>
                     </form>
                     
-                    <div class="mt-3 d-none" id="processingStatus">
-                        <div class="d-flex justify-content-center mb-2">
-                            <div class="spinner-border text-primary" role="status">
+                    <div class="mt-4 d-none" id="processingStatus">
+                        <div class="spinner-container">
+                            <div class="spinner-border" role="status">
                                 <span class="visually-hidden">Processing...</span>
                             </div>
                         </div>
                         <p class="text-center">Processing your file... This may take several minutes depending on the file length and model size.</p>
+                        <div class="progress mt-3">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 100%" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
                     </div>
                 </div>
                 
                 <!-- Step 3: Results and Download -->
                 <div class="step-container d-none" id="step3">
-                    <h3 class="card-title">
-                        <span class="badge bg-primary me-2">3</span>
+                    <h3 class="card-title mb-3">
+                        <span class="badge me-2">3</span>
                         Results and Download
                     </h3>
+                    
+                    <div class="alert alert-success mb-4">
+                        <i class="fas fa-check-circle me-2"></i>
+                        <strong>Success!</strong> Your file has been processed. You can now preview and download your subtitles.
+                    </div>
                     
                     <div class="mb-4">
                         <div class="card">
                             <div class="card-header d-flex justify-content-between align-items-center">
-                                <h5 class="mb-0">Preview</h5>
-                                <button class="btn btn-sm btn-outline-secondary" id="togglePreviewBtn">
+                                <h5 class="mb-0"><i class="fas fa-eye me-2 text-primary"></i>Preview</h5>
+                                <button class="btn btn-sm btn-outline-primary" id="togglePreviewBtn">
                                     <i class="fas fa-expand-alt"></i>
                                 </button>
                             </div>
@@ -143,25 +230,38 @@
                     </div>
                     
                     <form id="downloadForm">
-                        <div class="mb-3">
-                            <label class="form-label">Download Format</label>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="format" id="formatSrt" value="srt" checked>
-                                <label class="form-check-label" for="formatSrt">
-                                    SRT Format (standard subtitle format)
-                                </label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="format" id="formatVtt" value="vtt">
-                                <label class="form-check-label" for="formatVtt">
-                                    WebVTT Format (for HTML5 video)
-                                </label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="format" id="formatTxt" value="txt">
-                                <label class="form-check-label" for="formatTxt">
-                                    Plain Text (transcript only, no timestamps)
-                                </label>
+                        <div class="card mb-4">
+                            <div class="card-body">
+                                <h5 class="card-title mb-3"><i class="fas fa-file-download me-2 text-primary"></i>Download Format</h5>
+                                <div class="row">
+                                    <div class="col-md-4 mb-3 mb-md-0">
+                                        <div class="form-check format-option">
+                                            <input class="form-check-input" type="radio" name="format" id="formatSrt" value="srt" checked>
+                                            <label class="form-check-label d-flex flex-column" for="formatSrt">
+                                                <span class="format-title"><i class="fas fa-file-alt me-2"></i>SRT Format</span>
+                                                <small class="format-desc">Standard subtitle format for most video players</small>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4 mb-3 mb-md-0">
+                                        <div class="form-check format-option">
+                                            <input class="form-check-input" type="radio" name="format" id="formatVtt" value="vtt">
+                                            <label class="form-check-label d-flex flex-column" for="formatVtt">
+                                                <span class="format-title"><i class="fas fa-code me-2"></i>WebVTT Format</span>
+                                                <small class="format-desc">For HTML5 video players and web use</small>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-check format-option">
+                                            <input class="form-check-input" type="radio" name="format" id="formatTxt" value="txt">
+                                            <label class="form-check-label d-flex flex-column" for="formatTxt">
+                                                <span class="format-title"><i class="fas fa-align-left me-2"></i>Plain Text</span>
+                                                <small class="format-desc">Simple transcript without timestamps</small>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         
@@ -191,4 +291,111 @@
         </div>
     </div>
 </div>
+
+<!-- Additional CSS for this page -->
+<style>
+    .step-navigation {
+        margin: 0 auto 2rem;
+        max-width: 500px;
+    }
+    
+    .step-indicator {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .step-badge {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background-color: #1e293b;
+        color: #94a3b8;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        border: 2px solid #334155;
+        transition: all 0.3s ease;
+    }
+    
+    .step-indicator.active .step-badge {
+        background: var(--primary-gradient);
+        color: white;
+        border-color: #6366f1;
+    }
+    
+    .step-label {
+        margin-top: 0.5rem;
+        font-size: 0.85rem;
+        color: #94a3b8;
+        transition: color 0.3s ease;
+    }
+    
+    .step-indicator.active .step-label {
+        color: #e5e7eb;
+        font-weight: 500;
+    }
+    
+    .step-line {
+        flex-grow: 1;
+        height: 3px;
+        background-color: #334155;
+        margin: 0 10px;
+        position: relative;
+        top: 20px;
+        max-width: 100px;
+    }
+    
+    .task-option {
+        flex: 1;
+        min-width: 140px;
+        text-align: center;
+        padding: 1rem;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        margin-right: 0;
+        transition: all 0.3s ease;
+    }
+    
+    .task-option:hover {
+        border-color: rgba(99, 102, 241, 0.3);
+        background-color: rgba(99, 102, 241, 0.05);
+    }
+    
+    .form-check-input:checked + .task-option {
+        border-color: #6366f1;
+        background-color: rgba(99, 102, 241, 0.1);
+    }
+    
+    .format-option {
+        padding: 1rem;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        margin-bottom: 0.5rem;
+        transition: all 0.3s ease;
+    }
+    
+    .format-option:hover {
+        border-color: rgba(99, 102, 241, 0.3);
+        background-color: rgba(99, 102, 241, 0.05);
+    }
+    
+    input[type="radio"]:checked + .format-option {
+        border-color: #6366f1;
+        background-color: rgba(99, 102, 241, 0.1);
+    }
+    
+    .format-title {
+        font-weight: 500;
+        margin-bottom: 0.25rem;
+    }
+    
+    .format-desc {
+        color: #94a3b8;
+        font-size: 0.85rem;
+    }
+</style>
 {% endblock %}

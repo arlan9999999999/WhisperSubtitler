@@ -14,6 +14,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const step1 = document.getElementById('step1');
     const step2 = document.getElementById('step2');
     const step3 = document.getElementById('step3');
+    const stepIndicator1 = document.getElementById('stepIndicator1');
+    const stepIndicator2 = document.getElementById('stepIndicator2');
+    const stepIndicator3 = document.getElementById('stepIndicator3');
     const backToUploadBtn = document.getElementById('backToUploadBtn');
     const processingStatus = document.getElementById('processingStatus');
     const transcriptPreview = document.getElementById('transcriptPreview');
@@ -26,12 +29,32 @@ document.addEventListener('DOMContentLoaded', function() {
     // Bootstrap toast component
     const toast = new bootstrap.Toast(alertToast);
 
-    // Show error message
+    // Show alert message with toast
     function showAlert(title, message, type = 'danger') {
         alertTitle.textContent = title;
         alertMessage.textContent = message;
         alertToast.className = `toast hide bg-${type} text-white`;
         toast.show();
+    }
+
+    // Update step indicators
+    function updateStepIndicators(currentStep) {
+        // Reset all indicators
+        [stepIndicator1, stepIndicator2, stepIndicator3].forEach(indicator => {
+            indicator.classList.remove('active', 'completed');
+        });
+        
+        // Set active and completed states
+        if (currentStep === 1) {
+            stepIndicator1.classList.add('active');
+        } else if (currentStep === 2) {
+            stepIndicator1.classList.add('completed');
+            stepIndicator2.classList.add('active');
+        } else if (currentStep === 3) {
+            stepIndicator1.classList.add('completed');
+            stepIndicator2.classList.add('completed');
+            stepIndicator3.classList.add('active');
+        }
     }
 
     // Setup file drag and drop
@@ -79,6 +102,12 @@ document.addEventListener('DOMContentLoaded', function() {
             fileName.textContent = file.name;
             fileInfo.classList.remove('d-none');
             uploadBtn.disabled = false;
+            
+            // Add animation to fileInfo
+            fileInfo.classList.add('animate__animated', 'animate__fadeIn');
+            setTimeout(() => {
+                fileInfo.classList.remove('animate__animated', 'animate__fadeIn');
+            }, 1000);
         } else {
             fileInfo.classList.add('d-none');
             uploadBtn.disabled = true;
@@ -102,8 +131,9 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        // Show progress bar
+        // Show progress bar with animation
         uploadProgress.classList.remove('d-none');
+        uploadProgress.classList.add('animate__animated', 'animate__fadeIn');
         uploadBtn.disabled = true;
         
         // Create FormData
@@ -131,9 +161,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Show success message
                     showAlert('Success', 'File uploaded successfully!', 'success');
                     
-                    // Move to step 2
+                    // Move to step 2 with animation
                     step1.classList.add('d-none');
                     step2.classList.remove('d-none');
+                    step2.classList.add('animate__animated', 'animate__fadeIn');
+                    setTimeout(() => {
+                        step2.classList.remove('animate__animated', 'animate__fadeIn');
+                    }, 1000);
+                    
+                    // Update step indicators
+                    updateStepIndicators(2);
                 } else {
                     showAlert('Error', response.error || 'Upload failed.');
                     uploadBtn.disabled = false;
@@ -158,8 +195,9 @@ document.addEventListener('DOMContentLoaded', function() {
     transcribeForm.addEventListener('submit', function(e) {
         e.preventDefault();
         
-        // Show processing status
+        // Show processing status with animation
         processingStatus.classList.remove('d-none');
+        processingStatus.classList.add('animate__animated', 'animate__fadeIn');
         document.getElementById('transcribeBtn').disabled = true;
         
         // Get form data
@@ -183,9 +221,16 @@ document.addEventListener('DOMContentLoaded', function() {
             // Show preview
             transcriptPreview.textContent = data.preview;
             
-            // Move to step 3
+            // Move to step 3 with animation
             step2.classList.add('d-none');
             step3.classList.remove('d-none');
+            step3.classList.add('animate__animated', 'animate__fadeIn');
+            setTimeout(() => {
+                step3.classList.remove('animate__animated', 'animate__fadeIn');
+            }, 1000);
+            
+            // Update step indicators
+            updateStepIndicators(3);
             
             showAlert('Success', 'Transcription completed!', 'success');
         })
@@ -193,6 +238,38 @@ document.addEventListener('DOMContentLoaded', function() {
             processingStatus.classList.add('d-none');
             showAlert('Error', 'Something went wrong during transcription.');
             document.getElementById('transcribeBtn').disabled = false;
+        });
+    });
+
+    // Add format option selection styling
+    const formatOptions = document.querySelectorAll('.format-option');
+    formatOptions.forEach(option => {
+        const radioInput = option.previousElementSibling;
+        
+        option.addEventListener('click', function() {
+            radioInput.checked = true;
+            
+            // Visual feedback
+            formatOptions.forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            option.classList.add('selected');
+        });
+    });
+
+    // Add task option selection styling
+    const taskOptions = document.querySelectorAll('.task-option');
+    taskOptions.forEach(option => {
+        const radioInput = option.previousElementSibling;
+        
+        option.addEventListener('click', function() {
+            radioInput.checked = true;
+            
+            // Visual feedback
+            taskOptions.forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            option.classList.add('selected');
         });
     });
 
@@ -206,6 +283,12 @@ document.addEventListener('DOMContentLoaded', function() {
         // Create form data
         const formData = new FormData();
         formData.append('format', format);
+        
+        // Add loading indicator to button
+        const downloadBtn = document.getElementById('downloadBtn');
+        const originalBtnText = downloadBtn.innerHTML;
+        downloadBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Preparing download...';
+        downloadBtn.disabled = true;
         
         // Start download
         const downloadWindow = window.open('', '_blank');
@@ -246,12 +329,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 downloadWindow.close();
             }
             
+            // Reset download button
+            downloadBtn.innerHTML = originalBtnText;
+            downloadBtn.disabled = false;
+            
             showAlert('Success', `Subtitles downloaded in ${format.toUpperCase()} format.`, 'success');
         })
         .catch(error => {
             if (downloadWindow) {
                 downloadWindow.close();
             }
+            
+            // Reset download button
+            downloadBtn.innerHTML = originalBtnText;
+            downloadBtn.disabled = false;
+            
             showAlert('Error', 'Download failed. Please try again.');
             console.error('Download error:', error);
         });
@@ -261,6 +353,9 @@ document.addEventListener('DOMContentLoaded', function() {
     backToUploadBtn.addEventListener('click', function() {
         step2.classList.add('d-none');
         step1.classList.remove('d-none');
+        
+        // Update step indicators
+        updateStepIndicators(1);
     });
 
     newFileBtn.addEventListener('click', function() {
@@ -282,6 +377,9 @@ document.addEventListener('DOMContentLoaded', function() {
             // Go back to step 1
             step3.classList.add('d-none');
             step1.classList.remove('d-none');
+            
+            // Update step indicators
+            updateStepIndicators(1);
         });
     });
 
@@ -293,9 +391,22 @@ document.addEventListener('DOMContentLoaded', function() {
         if (transcriptPreview.classList.contains('expanded')) {
             icon.classList.remove('fa-expand-alt');
             icon.classList.add('fa-compress-alt');
+            togglePreviewBtn.setAttribute('title', 'Collapse preview');
         } else {
             icon.classList.remove('fa-compress-alt');
             icon.classList.add('fa-expand-alt');
+            togglePreviewBtn.setAttribute('title', 'Expand preview');
         }
+    });
+
+    // Add additional styling to step badges
+    document.querySelectorAll('.badge').forEach(badge => {
+        badge.style.background = 'var(--primary-gradient)';
+    });
+
+    // Initialize tooltips
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
     });
 });

@@ -1,27 +1,248 @@
 /* Main styles */
+:root {
+    --primary-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    --secondary-gradient: linear-gradient(135deg, #3b82f6 0%, #2dd4bf 100%);
+    --accent-color: #8b5cf6;
+    --card-border-radius: 16px;
+    --step-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+}
+
 body {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    font-family: 'Poppins', sans-serif;
+    background-color: #111827;
+    color: #e5e7eb;
 }
 
 main {
     flex: 1;
 }
 
-/* File upload area */
+/* Text gradient effect */
+.text-gradient {
+    background: var(--primary-gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+/* Navbar and branding */
+.navbar {
+    background-color: rgba(17, 24, 39, 0.8);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    padding: 1rem 0;
+}
+
+.brand-text {
+    font-weight: 600;
+    background: var(--secondary-gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+/* Hero section */
+.hero-section {
+    padding: 3rem 0 1rem;
+    background: #151b28;
+    position: relative;
+    overflow: hidden;
+}
+
+.hero-section::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, rgba(17, 24, 39, 0) 50%);
+    z-index: 0;
+}
+
+.hero-section .container {
+    position: relative;
+    z-index: 1;
+}
+
+/* Card styling */
+.card {
+    border: none;
+    background-color: #1e293b;
+    border-radius: var(--card-border-radius);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+}
+
+.card-header {
+    background: var(--primary-gradient);
+    color: white;
+    padding: 1.2rem;
+    border-bottom: none;
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+/* File upload area with animation */
 .file-upload-area {
-    border: 2px dashed var(--bs-border-color);
-    border-radius: 8px;
-    padding: 2.5rem;
+    border: 2px dashed rgba(139, 92, 246, 0.4);
+    border-radius: 12px;
+    padding: 3rem 2rem;
     text-align: center;
     cursor: pointer;
     transition: all 0.3s ease;
+    background-color: rgba(30, 41, 59, 0.6);
+    position: relative;
+    overflow: hidden;
 }
 
 .file-upload-area:hover, .file-upload-area.dragover {
-    border-color: var(--bs-primary);
-    background-color: rgba(13, 110, 253, 0.05);
+    border-color: var(--accent-color);
+    background-color: rgba(99, 102, 241, 0.1);
+}
+
+.file-upload-area::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    transition: left 0.7s ease;
+}
+
+.file-upload-area:hover::before {
+    left: 100%;
+}
+
+/* Button styling */
+.btn-primary {
+    background: var(--primary-gradient);
+    border: none;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.4);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px -2px rgba(99, 102, 241, 0.6);
+}
+
+.btn-outline-primary {
+    border-color: #6366f1;
+    color: #6366f1;
+}
+
+.btn-outline-primary:hover {
+    background: var(--primary-gradient);
+}
+
+.btn-outline-secondary {
+    border-color: #64748b;
+    color: #64748b;
+}
+
+/* Step badges and indicators */
+.step-container {
+    padding: 1.5rem;
+    border-radius: 0.75rem;
+    transition: all 0.3s ease;
+    margin-bottom: 2rem;
+    background-color: #1e293b;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.badge {
+    padding: 0.6rem 1rem;
+    border-radius: 50px;
+    background: var(--step-gradient);
+    color: white;
+    font-weight: 500;
+}
+
+/* Step Indicators */
+.step-navigation {
+    margin: 0 auto 2rem;
+    max-width: 500px;
+}
+
+.step-indicator {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    z-index: 1;
+}
+
+.step-badge {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #1e293b;
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    border: 2px solid #334155;
+    transition: all 0.3s ease;
+}
+
+.step-indicator.active .step-badge {
+    background: var(--primary-gradient);
+    color: white;
+    border-color: #6366f1;
+    transform: scale(1.1);
+    box-shadow: 0 0 15px rgba(99, 102, 241, 0.5);
+}
+
+.step-indicator.completed .step-badge {
+    background: var(--secondary-gradient);
+    color: white;
+    border-color: #3b82f6;
+}
+
+.step-label {
+    margin-top: 0.5rem;
+    font-size: 0.85rem;
+    color: #94a3b8;
+    transition: color 0.3s ease;
+}
+
+.step-indicator.active .step-label {
+    color: #e5e7eb;
+    font-weight: 500;
+}
+
+.step-indicator.completed .step-label {
+    color: #3b82f6;
+}
+
+.step-line {
+    flex-grow: 1;
+    height: 3px;
+    background-color: #334155;
+    margin: 0 10px;
+    position: relative;
+    top: 20px;
+    max-width: 100px;
+    transition: background-color 0.3s ease;
+}
+
+.step-indicator.completed + .step-line {
+    background: var(--secondary-gradient);
 }
 
 /* Transcript preview */
@@ -29,33 +250,243 @@ main {
     max-height: 300px;
     overflow-y: auto;
     white-space: pre-line;
-    font-size: 0.9rem;
-    line-height: 1.6;
-    padding: 0.5rem;
+    font-size: 0.95rem;
+    line-height: 1.7;
+    padding: 1rem;
+    border-radius: 8px;
+    background-color: rgba(24, 33, 47, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .transcript-preview.expanded {
     max-height: none;
 }
 
-/* Step containers */
-.step-container {
-    padding: 1rem;
-    border-radius: 0.5rem;
-    transition: all 0.3s ease;
+/* Loading spinner */
+.spinner-border {
+    width: 3rem;
+    height: 3rem;
+    border-width: 0.25rem;
+    color: #8b5cf6;
 }
 
-/* Loading spinner */
 .spinner-container {
     display: flex;
     justify-content: center;
     align-items: center;
-    margin: 2rem 0;
+    margin: 2.5rem 0;
+}
+
+/* Progress bar styling */
+.progress {
+    height: 0.8rem;
+    background-color: rgba(30, 41, 59, 0.6);
+    border-radius: 100px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    background: var(--secondary-gradient);
+    border-radius: 100px;
+}
+
+/* Form controls */
+.form-control, .form-select {
+    background-color: #1e293b;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #e5e7eb;
+    border-radius: 8px;
+    padding: 0.7rem 1rem;
+}
+
+.form-control:focus, .form-select:focus {
+    background-color: #2d3a4f;
+    border-color: rgba(99, 102, 241, 0.5);
+    box-shadow: 0 0 0 0.2rem rgba(99, 102, 241, 0.25);
+}
+
+/* Modal styling */
+.modal-content {
+    background-color: #1e293b;
+    border-radius: var(--card-border-radius);
+    border: none;
+}
+
+.modal-header {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.modal-footer {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Instructions styling */
+.instructions-container {
+    padding: 0.5rem;
+}
+
+.instruction-step {
+    display: flex;
+    margin-bottom: 2rem;
+}
+
+.step-number {
+    background: var(--step-gradient);
+    color: white;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    margin-right: 1rem;
+    flex-shrink: 0;
+}
+
+.step-content {
+    flex: 1;
+}
+
+.step-content h5 {
+    margin-bottom: 0.75rem;
+    color: #e5e7eb;
+}
+
+.step-content p {
+    color: #94a3b8;
+    margin-bottom: 0.5rem;
+}
+
+/* Footer */
+.footer {
+    padding: 1.5rem 0;
+    background-color: #151b28;
+    color: #64748b;
+}
+
+/* Alert styling */
+.alert {
+    border-radius: 12px;
+    padding: 1rem;
+}
+
+.alert-info {
+    background-color: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    color: #93c5fd;
+}
+
+/* Toast styling */
+.toast {
+    border-radius: 12px;
+    backdrop-filter: blur(10px);
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.05);
+        opacity: 0.8;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes gradient {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+.animate__animated {
+    animation-duration: 0.5s;
+    animation-fill-mode: both;
+}
+
+.animate__fadeIn {
+    animation-name: fadeIn;
+}
+
+.animate__slideInRight {
+    animation-name: slideInRight;
+}
+
+.animate__pulse {
+    animation-name: pulse;
+    animation-duration: 1.5s;
+    animation-iteration-count: infinite;
+}
+
+/* Task and format selection styling */
+.task-option, .format-option {
+    transition: all 0.3s ease;
+    cursor: pointer;
+    position: relative;
+}
+
+.task-option:hover, .format-option:hover {
+    border-color: rgba(99, 102, 241, 0.4);
+    background-color: rgba(99, 102, 241, 0.05);
+    transform: translateY(-3px);
+}
+
+.task-option.selected, .format-option.selected {
+    border-color: #6366f1;
+    background-color: rgba(99, 102, 241, 0.1);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+    transform: translateY(-3px);
 }
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .file-upload-area {
-        padding: 1.5rem;
+        padding: 2rem 1rem;
+    }
+    
+    .card-header, .card-body {
+        padding: 1rem;
+    }
+    
+    .instruction-step {
+        flex-direction: column;
+    }
+    
+    .step-number {
+        margin-bottom: 0.5rem;
     }
 }

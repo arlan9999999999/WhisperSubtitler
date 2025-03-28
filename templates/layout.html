@@ -8,28 +8,104 @@
     <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
     <!-- Font Awesome Icons -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Custom CSS -->
     <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <nav class="navbar navbar-expand-lg">
         <div class="container">
-            <a class="navbar-brand" href="/">
-                <i class="fas fa-closed-captioning me-2"></i>
-                Whisper Subtitle Generator
+            <a class="navbar-brand d-flex align-items-center" href="/">
+                <i class="fas fa-closed-captioning me-2 text-primary"></i>
+                <span class="brand-text">Whisper Subtitle Generator</span>
             </a>
+            <button class="btn btn-sm btn-outline-primary ms-auto d-none d-md-block" type="button" data-bs-toggle="modal" data-bs-target="#instructionsModal">
+                <i class="fas fa-question-circle me-1"></i> How to Use
+            </button>
         </div>
     </nav>
+    
+    <div class="hero-section py-4">
+        <div class="container text-center">
+            <h1 class="display-5 fw-bold text-gradient mb-3">Generate Subtitles with AI</h1>
+            <p class="lead">Convert audio and video to accurate subtitles using local AI - no API keys needed</p>
+        </div>
+    </div>
     
     <main class="container py-4">
         {% block content %}{% endblock %}
     </main>
     
-    <footer class="footer mt-auto py-3 bg-dark">
+    <footer class="footer mt-auto py-3">
         <div class="container text-center">
-            <span class="text-muted">Powered by <a href="https://github.com/openai/whisper" target="_blank" class="text-decoration-none">OpenAI Whisper</a>. Using local model - no API keys needed.</span>
+            <span>Powered by <a href="https://github.com/openai/whisper" target="_blank" class="text-decoration-none link-primary">OpenAI Whisper</a>. Using local model - no API keys needed.</span>
         </div>
     </footer>
+    
+    <!-- Instructions Modal -->
+    <div class="modal fade" id="instructionsModal" tabindex="-1" aria-labelledby="instructionsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="instructionsModalLabel">
+                        <i class="fas fa-info-circle text-primary me-2"></i>How to Use This App
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="instructions-container">
+                        <div class="instruction-step">
+                            <div class="step-number">1</div>
+                            <div class="step-content">
+                                <h5>Upload Your Audio or Video File</h5>
+                                <p>Drag and drop your file or click to browse. Supported formats include MP3, MP4, WAV, AVI, MOV, FLAC, OGG, M4A, and WebM. Maximum file size is 200MB.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="instruction-step">
+                            <div class="step-number">2</div>
+                            <div class="step-content">
+                                <h5>Choose Processing Options</h5>
+                                <p>Select a model size based on your needs (larger models are more accurate but slower). Optionally specify a language for better accuracy or let the app auto-detect it.</p>
+                                <p>Choose between:</p>
+                                <ul>
+                                    <li><strong>Transcribe:</strong> Generate subtitles in the original language</li>
+                                    <li><strong>Translate:</strong> Convert the speech to English subtitles</li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <div class="instruction-step">
+                            <div class="step-number">3</div>
+                            <div class="step-content">
+                                <h5>Download Your Subtitles</h5>
+                                <p>Once processing is complete, you can preview the transcription and download your subtitles in one of these formats:</p>
+                                <ul>
+                                    <li><strong>SRT:</strong> Standard subtitle format compatible with most video players</li>
+                                    <li><strong>WebVTT:</strong> For web-based videos and HTML5 players</li>
+                                    <li><strong>Plain Text:</strong> Simple text transcript without timestamps</li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-info mt-3">
+                            <i class="fas fa-lightbulb me-2"></i>
+                            <strong>Tips:</strong>
+                            <ul class="mb-0 ps-3">
+                                <li>For best accuracy, use clear audio with minimal background noise</li>
+                                <li>Larger models provide better results but take longer to process</li>
+                                <li>Specifying the correct language usually improves transcription quality</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Got it!</button>
+                </div>
+            </div>
+        </div>
+    </div>
     
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
