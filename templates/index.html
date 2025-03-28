@@ -5,7 +5,7 @@
     <div class="col-md-10">
         <!-- Whisper App Features -->
         <div class="row mb-4">
-            <div class="col-md-4 mb-3">
+            <div class="col-md-3 mb-3">
                 <div class="card h-100">
                     <div class="card-body text-center">
                         <i class="fas fa-cogs fa-3x mb-3 text-primary"></i>
@@ -14,7 +14,7 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-4 mb-3">
+            <div class="col-md-3 mb-3">
                 <div class="card h-100">
                     <div class="card-body text-center">
                         <i class="fas fa-language fa-3x mb-3 text-primary"></i>
@@ -23,12 +23,21 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-4 mb-3">
+            <div class="col-md-3 mb-3">
                 <div class="card h-100">
                     <div class="card-body text-center">
                         <i class="fas fa-file-export fa-3x mb-3 text-primary"></i>
                         <h5 class="card-title">Multiple Formats</h5>
                         <p class="card-text">Download subtitles in SRT, WebVTT, or plain text format.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-history fa-3x mb-3 text-primary"></i>
+                        <h5 class="card-title">Transcription History</h5>
+                        <p class="card-text">Save and access your previous transcriptions in one place.</p>
                     </div>
                 </div>
             </div>
@@ -272,6 +281,13 @@
                             <button type="button" class="btn btn-outline-secondary ms-2" id="newFileBtn">
                                 <i class="fas fa-plus me-1"></i> Process New File
                             </button>
+                            <a href="/history" class="btn btn-outline-info ms-2">
+                                <i class="fas fa-history me-1"></i> View History
+                            </a>
+                        </div>
+                        
+                        <div class="text-center mt-3">
+                            <small class="text-muted">Your transcriptions are saved automatically and can be accessed in the History page</small>
                         </div>
                     </form>
                 </div>

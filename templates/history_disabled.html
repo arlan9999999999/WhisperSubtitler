@@ -1,0 +1,50 @@
+{% extends 'layout.html' %}
+
+{% block title %}History Disabled{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row mb-4">
+        <div class="col text-center">
+            <h1 class="display-5 fw-bold mb-4">
+                <span class="gradient-text">History Feature Disabled</span>
+            </h1>
+            
+            <div class="card p-5 shadow mx-auto" style="max-width: 800px;">
+                <div class="card-body">
+                    <h3 class="card-title mb-4">Supabase Configuration Required</h3>
+                    <p class="card-text lead">The transcription history feature requires Supabase to store your transcription records.</p>
+                    
+                    <div class="alert alert-info my-4">
+                        <h5 class="alert-heading">To enable this feature:</h5>
+                        <ol class="text-start mt-3">
+                            <li>Create a free Supabase account at <a href="https://supabase.com" target="_blank">supabase.com</a></li>
+                            <li>Create a new project</li>
+                            <li>Create a table named <code>transcriptions</code> with the following columns:
+                                <ul>
+                                    <li><code>id</code> (type: uuid, primary key)</li>
+                                    <li><code>file_name</code> (type: text)</li>
+                                    <li><code>language</code> (type: text)</li>
+                                    <li><code>model</code> (type: text)</li>
+                                    <li><code>task</code> (type: text)</li>
+                                    <li><code>format</code> (type: text)</li>
+                                    <li><code>preview</code> (type: text)</li>
+                                    <li><code>created_at</code> (type: timestamp with time zone, default: now())</li>
+                                </ul>
+                            </li>
+                            <li>Get your Supabase URL and API key from the project settings</li>
+                            <li>Set the environment variables <code>SUPABASE_URL</code> and <code>SUPABASE_KEY</code></li>
+                        </ol>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <a href="/" class="btn btn-primary me-2">
+                            <i class="bi bi-house"></i> Back to Home
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

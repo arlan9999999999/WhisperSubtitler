@@ -1,0 +1,81 @@
+{% extends 'layout.html' %}
+
+{% block title %}Transcription History{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="display-5 fw-bold text-center mb-4">
+                <span class="gradient-text">Transcription History</span>
+            </h1>
+            <p class="lead text-center mb-5">View your previous transcriptions</p>
+            
+            <!-- Back to Home Button -->
+            <div class="text-center mb-4">
+                <a href="/" class="btn btn-secondary">
+                    <i class="bi bi-house"></i> Back to Home
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    {% if error %}
+    <div class="alert alert-danger" role="alert">
+        <h4 class="alert-heading">Error</h4>
+        <p>{{ error }}</p>
+    </div>
+    {% endif %}
+    
+    {% if transcriptions and transcriptions|length > 0 %}
+    <div class="row">
+        <div class="col">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>File Name</th>
+                            <th>Language</th>
+                            <th>Model</th>
+                            <th>Task</th>
+                            <th>Format</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for transcription in transcriptions %}
+                        <tr>
+                            <td>{{ transcription.file_name }}</td>
+                            <td>{{ transcription.language|default('Auto', true) }}</td>
+                            <td>{{ transcription.model|default('base', true) }}</td>
+                            <td>{{ transcription.task|default('transcribe', true) }}</td>
+                            <td>{{ transcription.format|default('srt', true) }}</td>
+                            <td>{{ transcription.created_at|default('', true) }}</td>
+                            <td>
+                                <a href="/history/{{ transcription.id }}" class="btn btn-sm btn-primary">
+                                    <i class="bi bi-eye"></i> View
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="row">
+        <div class="col">
+            <div class="card text-center p-5">
+                <div class="card-body">
+                    <h3 class="card-title mb-4">No Transcriptions Found</h3>
+                    <p class="card-text">You haven't created any transcriptions yet, or there was an error retrieving them.</p>
+                    <a href="/" class="btn btn-primary mt-3">Create Your First Transcription</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

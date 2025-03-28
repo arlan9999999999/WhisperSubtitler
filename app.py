@@ -2,10 +2,11 @@ import os
 import logging
 import tempfile
 import uuid
-from flask import Flask, render_template, request, jsonify, send_file, session
+from flask import Flask, render_template, request, jsonify, send_file, session, redirect, url_for
 from werkzeug.utils import secure_filename
 import whisper_utils
 import subtitle_formatter
+import supabase_client  # Import Supabase client
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -22,6 +23,9 @@ MAX_CONTENT_LENGTH = 200 * 1024 * 1024  # 200MB max file size
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = MAX_CONTENT_LENGTH
+
+# Check if Supabase is properly configured
+SUPABASE_CONFIGURED = bool(os.environ.get("SUPABASE_URL") and os.environ.get("SUPABASE_KEY"))
 
 # Helper functions
 def allowed_file(filename):
@@ -98,8 +102,10 @@ def transcribe():
         logger.info(f"Starting transcription with model: {model_name}, language: {language}, task: {task}")
         result = whisper_utils.transcribe_audio(file_path, model_name, language, task)
         
-        # Store the result in session
+        # Store the result and processing parameters in session for later use
         session['transcription_result'] = result
+        session['model_name'] = model_name
+        session['task'] = task
         
         return jsonify({
             'status': 'completed',
@@ -140,6 +146,27 @@ def download_subtitles():
         else:
             return jsonify({'error': f'Unsupported subtitle format: {subtitle_format}'}), 400
         
+        # Save to Supabase if configured
+        if SUPABASE_CONFIGURED:
+            try:
+                # Get language info from result
+                detected_language = result.get('language', 'unknown')
+                model_name = session.get('model_name', 'base')
+                task = session.get('task', 'transcribe')
+                
+                # Save to DB
+                supabase_client.save_transcription(
+                    file_name=original_filename,
+                    original_language=detected_language,
+                    model_used=model_name,
+                    task_type=task,
+                    format_type=subtitle_format,
+                    content_preview=result['text'][:1000]
+                )
+            except Exception as se:
+                logger.error(f"Supabase error: {str(se)}")
+                # Continue with download even if Supabase fails
+        
         # Create temporary file for download
         temp_file = tempfile.NamedTemporaryFile(delete=False)
         temp_file.write(content.encode('utf-8'))
@@ -168,9 +195,48 @@ def clear_session():
     session.clear()
     return jsonify({'status': 'success', 'message': 'Session cleared'})
 
+@app.route('/history')
+def view_history():
+    """Display transcription history if Supabase is configured."""
+    if not SUPABASE_CONFIGURED:
+        return render_template('history_disabled.html')
+    
+    try:
+        # Get recent transcriptions from Supabase
+        transcriptions = supabase_client.get_recent_transcriptions(limit=50)
+        return render_template('history.html', transcriptions=transcriptions)
+    except Exception as e:
+        logger.error(f"Error retrieving history: {str(e)}")
+        return render_template('history.html', transcriptions=[], error=str(e))
+
+@app.route('/history/<transcription_id>')
+def transcription_detail(transcription_id):
+    """Display details for a specific transcription."""
+    if not SUPABASE_CONFIGURED:
+        return render_template('history_disabled.html')
+    
+    try:
+        # Get transcription details from Supabase
+        transcription = supabase_client.get_transcription_by_id(transcription_id)
+        if not transcription:
+            return render_template('transcription_not_found.html', transcription_id=transcription_id)
+        
+        return render_template('transcription_detail.html', transcription=transcription)
+    except Exception as e:
+        logger.error(f"Error retrieving transcription details: {str(e)}")
+        return render_template('transcription_detail.html', transcription=None, error=str(e))
+        
 @app.errorhandler(413)
 def request_entity_too_large(error):
     return jsonify({'error': f'File too large. Maximum allowed size is {MAX_CONTENT_LENGTH / (1024 * 1024)}MB'}), 413
+
+# Initialize Supabase tables if needed
+if SUPABASE_CONFIGURED:
+    try:
+        supabase_client.create_tables_if_not_exist()
+        logger.info("Supabase tables checked/created")
+    except Exception as e:
+        logger.error(f"Error initializing Supabase tables: {str(e)}")
 
 if __name__ == "__main__":
     # Create temp folder if it doesn't exist
