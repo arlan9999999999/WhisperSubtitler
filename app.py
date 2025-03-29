@@ -236,8 +236,15 @@ def download_stored_subtitle(transcription_id):
     try:
         # Get transcription details from Supabase
         transcription = supabase_client.get_transcription_by_id(transcription_id)
-        if not transcription or not transcription.get('subtitle_content'):
+        if not transcription:
             return render_template('transcription_not_found.html', transcription_id=transcription_id)
+            
+        # Check if subtitle content is available
+        if not transcription.get('subtitle_content'):
+            logger.error(f"No subtitle content found for transcription ID: {transcription_id}")
+            return render_template('transcription_not_found.html', 
+                                  transcription_id=transcription_id,
+                                  error_message="The subtitle content for this transcription is not available.")
         
         # Determine the file extension and MIME type
         format_type = transcription.get('format', 'srt').lower()
@@ -249,12 +256,20 @@ def download_stored_subtitle(transcription_id):
             mimetype = 'text/plain'
             
         # Create a suitable filename
-        filename = f"{transcription.get('file_name', 'subtitle')}.{format_type}"
+        original_filename = transcription.get('file_name', 'subtitle')
+        # Remove any path information for security
+        safe_filename = os.path.basename(original_filename)
+        # Remove the extension if it exists
+        base_filename = os.path.splitext(safe_filename)[0]
+        # Create the final filename with the correct format extension
+        filename = f"{base_filename}.{format_type}"
         
         # Create a temporary file with the content
         temp_file = tempfile.NamedTemporaryFile(delete=False)
         temp_file.write(transcription['subtitle_content'].encode('utf-8'))
         temp_file.close()
+        
+        logger.info(f"Sending subtitle file: {filename} for transcription ID: {transcription_id}")
         
         return send_file(
             temp_file.name,
@@ -265,11 +280,19 @@ def download_stored_subtitle(transcription_id):
         
     except Exception as e:
         logger.error(f"Error downloading subtitle file: {str(e)}")
-        return jsonify({'error': f'An error occurred: {str(e)}'}), 500
+        return jsonify({'error': f'An error occurred while retrieving your subtitle file: {str(e)}'}), 500
         
 @app.errorhandler(413)
 def request_entity_too_large(error):
     return jsonify({'error': f'File too large. Maximum allowed size is {MAX_CONTENT_LENGTH / (1024 * 1024)}MB'}), 413
+
+# Context processor to add global variables to templates
+@app.context_processor
+def inject_global_vars():
+    """Inject global variables into all templates."""
+    return {
+        'SUPABASE_CONFIGURED': SUPABASE_CONFIGURED
+    }
 
 # Initialize Supabase tables if needed
 if SUPABASE_CONFIGURED:

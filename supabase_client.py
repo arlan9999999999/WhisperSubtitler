@@ -24,6 +24,11 @@ supabase = None
 def is_valid_url(url):
     if not url:
         return False
+    # First, ensure it's not actually an API key that was mistakenly provided as a URL
+    if url.startswith('eyJ'):
+        logger.error("The provided SUPABASE_URL appears to be an API key, not a URL")
+        return False
+        
     # Basic URL validation pattern
     pattern = re.compile(
         r'^(?:http|https)://'  # http:// or https://
@@ -32,15 +37,32 @@ def is_valid_url(url):
         r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'  # or IPv4
         r'(?::\d+)?'  # optional port
         r'(?:/?|[/?]\S+)$', re.IGNORECASE)
-    return bool(pattern.match(url))
+    
+    # Common Supabase URL format check - should contain supabase.co or similar
+    is_valid = bool(pattern.match(url))
+    if is_valid and not ('supabase.co' in url.lower() or 'supabase.in' in url.lower()):
+        logger.warning(f"URL appears valid but doesn't contain 'supabase.co': {url}")
+        # Still return true, it might be a custom domain
+    
+    return is_valid
+
+# Make Supabase import conditional to avoid errors if the package is not installed
+try:
+    from supabase import create_client, Client
+    SUPABASE_IMPORT_SUCCESS = True
+except ImportError:
+    logger.warning("Supabase package not installed. Install it with 'pip install supabase'")
+    SUPABASE_IMPORT_SUCCESS = False
 
 if url and key:
     if not is_valid_url(url):
         logger.error(f"Invalid Supabase URL format: {url}")
         supabase = None
+    elif not SUPABASE_IMPORT_SUCCESS:
+        logger.error("Cannot initialize Supabase client: package not installed")
+        supabase = None
     else:
         try:
-            from supabase import create_client, Client
             supabase: Client = create_client(url, key)
             logger.info("Supabase client initialized successfully")
         except Exception as e:
@@ -62,23 +84,38 @@ def create_tables_if_not_exist():
         # Check if the transcriptions table exists, if not create it
         logger.info("Checking Supabase tables...")
         
-        # Use raw SQL to create the table if it doesn't exist
-        query = """
-        CREATE TABLE IF NOT EXISTS transcriptions (
-            id BIGSERIAL PRIMARY KEY,
-            file_name TEXT NOT NULL,
-            language TEXT,
-            model TEXT,
-            task TEXT,
-            format TEXT,
-            preview TEXT,
-            subtitle_content TEXT,
-            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-        );
-        """
+        # For newer versions of supabase-py, we can't execute raw SQL directly this way
+        # Instead, we'll check if the table exists and create it if needed
+        try:
+            # Try to query the table to see if it exists
+            supabase.table("transcriptions").select("count", count="exact").limit(1).execute()
+            logger.info("Transcriptions table exists")
+        except Exception as table_error:
+            # If we get an error, the table might not exist
+            logger.warning(f"Error querying transcriptions table: {table_error}")
+            logger.info("Attempting to create transcriptions table via REST API")
+            
+            # Create the table by inserting a dummy record with all fields
+            # This is a workaround since we can't execute raw SQL directly
+            try:
+                supabase.table("transcriptions").insert({
+                    "file_name": "initialization_record",
+                    "language": "system",
+                    "model": "system",
+                    "task": "system",
+                    "format": "system",
+                    "preview": "This is a dummy record created to initialize the table.",
+                    "subtitle_content": "Initialization record - safe to delete",
+                }).execute()
+                logger.info("Successfully created transcriptions table")
+                
+                # Now delete the dummy record
+                response = supabase.table("transcriptions").delete().eq("file_name", "initialization_record").execute()
+                logger.info(f"Removed initialization record: {response.data}")
+            except Exception as create_error:
+                logger.error(f"Failed to create transcriptions table: {create_error}")
+                raise
         
-        # Execute the query
-        supabase.table("transcriptions").execute(query)
         logger.info("Supabase tables checked/created")
     except Exception as e:
         logger.error(f"Error creating tables in Supabase: {e}")

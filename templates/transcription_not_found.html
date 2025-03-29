@@ -15,11 +15,19 @@
                     <h3 class="card-title mb-4">Oops! Subtitle Record Not Found</h3>
                     <p class="card-text lead">The subtitle record with ID <code>{{ transcription_id }}</code> could not be found.</p>
                     
+                    {% if error_message %}
+                    <div class="alert alert-danger my-4">
+                        <h5 class="alert-heading">Error Details:</h5>
+                        <p class="mb-0">{{ error_message }}</p>
+                    </div>
+                    {% endif %}
+                    
                     <div class="alert alert-info my-4">
                         <h5 class="alert-heading">Possible reasons:</h5>
                         <ul class="text-start mt-3">
                             <li>The record may have been deleted</li>
                             <li>The ID might be incorrect</li>
+                            <li>The subtitle file might not be available</li>
                             <li>There might be an issue with the database connection</li>
                         </ul>
                     </div>
