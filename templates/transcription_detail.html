@@ -1,19 +1,19 @@
 {% extends 'layout.html' %}
 
-{% block title %}Transcription Details{% endblock %}
+{% block title %}Subtitle Details{% endblock %}
 
 {% block content %}
 <div class="container py-5">
     <div class="row mb-4">
         <div class="col">
             <h1 class="display-5 fw-bold text-center mb-4">
-                <span class="gradient-text">Transcription Details</span>
+                <span class="gradient-text">Subtitle Details</span>
             </h1>
             
             <!-- Navigation Buttons -->
             <div class="text-center mb-5">
                 <a href="/history" class="btn btn-secondary me-2">
-                    <i class="bi bi-list"></i> Back to History
+                    <i class="bi bi-list"></i> Back to Saved Subtitles
                 </a>
                 <a href="/" class="btn btn-secondary">
                     <i class="bi bi-house"></i> Home
@@ -72,6 +72,15 @@
                     <div class="transcription-preview p-3 rounded" style="background-color: rgba(var(--bs-secondary-rgb), 0.1);">
                         <p style="white-space: pre-wrap;">{{ transcription.preview }}</p>
                     </div>
+                    
+                    {% if transcription.subtitle_content %}
+                    <div class="mt-4">
+                        <h5 class="mb-3">Subtitle File:</h5>
+                        <a href="{{ url_for('download_stored_subtitle', transcription_id=transcription.id) }}" class="btn btn-primary">
+                            <i class="bi bi-download"></i> Download {{ transcription.format|upper }} File
+                        </a>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>

@@ -1,15 +1,15 @@
 {% extends 'layout.html' %}
 
-{% block title %}Transcription History{% endblock %}
+{% block title %}Saved Subtitles{% endblock %}
 
 {% block content %}
 <div class="container py-5">
     <div class="row mb-4">
         <div class="col">
             <h1 class="display-5 fw-bold text-center mb-4">
-                <span class="gradient-text">Transcription History</span>
+                <span class="gradient-text">Saved Subtitles</span>
             </h1>
-            <p class="lead text-center mb-5">View your previous transcriptions</p>
+            <p class="lead text-center mb-5">View and download your previous transcriptions</p>
             
             <!-- Back to Home Button -->
             <div class="text-center mb-4">
@@ -56,6 +56,11 @@
                                 <a href="/history/{{ transcription.id }}" class="btn btn-sm btn-primary">
                                     <i class="bi bi-eye"></i> View
                                 </a>
+                                {% if transcription.subtitle_content %}
+                                <a href="/history/{{ transcription.id }}/download" class="btn btn-sm btn-success ms-1">
+                                    <i class="bi bi-download"></i> Download
+                                </a>
+                                {% endif %}
                             </td>
                         </tr>
                         {% endfor %}

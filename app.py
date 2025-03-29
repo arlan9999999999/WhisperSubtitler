@@ -154,14 +154,15 @@ def download_subtitles():
                 model_name = session.get('model_name', 'base')
                 task = session.get('task', 'transcribe')
                 
-                # Save to DB
+                # Save to DB with full subtitle content
                 supabase_client.save_transcription(
                     file_name=original_filename,
                     original_language=detected_language,
                     model_used=model_name,
                     task_type=task,
                     format_type=subtitle_format,
-                    content_preview=result['text'][:1000]
+                    content_preview=result['text'][:1000],
+                    subtitle_content=content  # Store the complete subtitle content
                 )
             except Exception as se:
                 logger.error(f"Supabase error: {str(se)}")
@@ -225,6 +226,46 @@ def transcription_detail(transcription_id):
     except Exception as e:
         logger.error(f"Error retrieving transcription details: {str(e)}")
         return render_template('transcription_detail.html', transcription=None, error=str(e))
+        
+@app.route('/history/<transcription_id>/download')
+def download_stored_subtitle(transcription_id):
+    """Download a subtitle file that was previously stored in Supabase."""
+    if not SUPABASE_CONFIGURED:
+        return render_template('history_disabled.html')
+    
+    try:
+        # Get transcription details from Supabase
+        transcription = supabase_client.get_transcription_by_id(transcription_id)
+        if not transcription or not transcription.get('subtitle_content'):
+            return render_template('transcription_not_found.html', transcription_id=transcription_id)
+        
+        # Determine the file extension and MIME type
+        format_type = transcription.get('format', 'srt').lower()
+        if format_type == 'srt':
+            mimetype = 'application/x-subrip'
+        elif format_type == 'vtt':
+            mimetype = 'text/vtt'
+        else:
+            mimetype = 'text/plain'
+            
+        # Create a suitable filename
+        filename = f"{transcription.get('file_name', 'subtitle')}.{format_type}"
+        
+        # Create a temporary file with the content
+        temp_file = tempfile.NamedTemporaryFile(delete=False)
+        temp_file.write(transcription['subtitle_content'].encode('utf-8'))
+        temp_file.close()
+        
+        return send_file(
+            temp_file.name,
+            as_attachment=True,
+            download_name=filename,
+            mimetype=mimetype
+        )
+        
+    except Exception as e:
+        logger.error(f"Error downloading subtitle file: {str(e)}")
+        return jsonify({'error': f'An error occurred: {str(e)}'}), 500
         
 @app.errorhandler(413)
 def request_entity_too_large(error):
