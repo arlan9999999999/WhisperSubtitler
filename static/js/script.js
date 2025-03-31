@@ -334,6 +334,22 @@ document.addEventListener('DOMContentLoaded', function() {
             downloadBtn.disabled = false;
             
             showAlert('Success', `Subtitles downloaded in ${format.toUpperCase()} format.`, 'success');
+            
+            // Delete the file from Supabase storage after download
+            setTimeout(() => {
+                fetch('/download-complete', {
+                    method: 'POST'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        console.log('File deleted from cloud storage after download');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting file from cloud storage:', error);
+                });
+            }, 1000);
         })
         .catch(error => {
             if (downloadWindow) {

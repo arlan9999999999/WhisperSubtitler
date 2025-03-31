@@ -146,7 +146,8 @@ def download_subtitles():
         else:
             return jsonify({'error': f'Unsupported subtitle format: {subtitle_format}'}), 400
         
-        # Save to Supabase if configured
+        # Upload to Supabase storage if configured
+        supabase_file_info = None
         if SUPABASE_CONFIGURED:
             try:
                 # Get language info from result
@@ -154,18 +155,29 @@ def download_subtitles():
                 model_name = session.get('model_name', 'base')
                 task = session.get('task', 'transcribe')
                 
-                # Save to DB with full subtitle content
-                supabase_client.save_transcription(
-                    file_name=original_filename,
-                    original_language=detected_language,
-                    model_used=model_name,
-                    task_type=task,
-                    format_type=subtitle_format,
-                    content_preview=result['text'][:1000],
-                    subtitle_content=content  # Store the complete subtitle content
+                # Additional metadata for the file
+                metadata = {
+                    "language": detected_language,
+                    "model": model_name,
+                    "task": task
+                }
+                
+                # Upload to Supabase storage
+                supabase_file_info = supabase_client.upload_subtitle_file(
+                    file_content=content,
+                    file_format=subtitle_format,
+                    original_filename=original_filename,
+                    metadata=metadata
                 )
+                
+                if supabase_file_info:
+                    # Store file ID in session to allow deletion after download
+                    session['last_uploaded_file_id'] = supabase_file_info['file_id']
+                    session['last_uploaded_file_format'] = subtitle_format
+                    logger.info(f"File uploaded to Supabase storage: {supabase_file_info['storage_filename']}")
+                
             except Exception as se:
-                logger.error(f"Supabase error: {str(se)}")
+                logger.error(f"Supabase storage error: {str(se)}")
                 # Continue with download even if Supabase fails
         
         # Create temporary file for download
@@ -184,6 +196,44 @@ def download_subtitles():
         logger.error(f"Download error: {str(e)}")
         return jsonify({'error': f'An error occurred during subtitle generation: {str(e)}'}), 500
 
+@app.route('/download-complete', methods=['POST'])
+def download_complete():
+    """
+    Endpoint to call after a download is complete to trigger deletion of the file from Supabase.
+    """
+    if not SUPABASE_CONFIGURED:
+        return jsonify({'status': 'skipped', 'message': 'Supabase not configured'}), 200
+        
+    try:
+        # Check if we have a file to delete
+        file_id = session.get('last_uploaded_file_id')
+        file_format = session.get('last_uploaded_file_format')
+        
+        if not file_id or not file_format:
+            return jsonify({'status': 'skipped', 'message': 'No file to delete'}), 200
+            
+        # Delete the file from Supabase storage
+        success = supabase_client.delete_subtitle_file(file_id, file_format)
+        
+        if success:
+            # Clear the file info from session
+            session.pop('last_uploaded_file_id', None)
+            session.pop('last_uploaded_file_format', None)
+            
+            return jsonify({
+                'status': 'success', 
+                'message': 'File deleted from cloud storage after download'
+            }), 200
+        else:
+            return jsonify({
+                'status': 'error',
+                'message': 'Failed to delete file from cloud storage'
+            }), 500
+            
+    except Exception as e:
+        logger.error(f"Error in download complete callback: {str(e)}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
 @app.route('/clear', methods=['POST'])
 def clear_session():
     # Clear session data and remove temporary files
@@ -193,83 +243,54 @@ def clear_session():
         except Exception as e:
             logger.warning(f"Error removing temp file: {str(e)}")
     
+    # Delete any stored files from Supabase if they exist
+    if SUPABASE_CONFIGURED and 'last_uploaded_file_id' in session:
+        try:
+            file_id = session.get('last_uploaded_file_id')
+            file_format = session.get('last_uploaded_file_format')
+            if file_id and file_format:
+                supabase_client.delete_subtitle_file(file_id, file_format)
+                logger.info(f"Deleted file from Supabase storage during session clear: {file_id}.{file_format}")
+        except Exception as e:
+            logger.warning(f"Error removing Supabase file during session clear: {str(e)}")
+    
     session.clear()
     return jsonify({'status': 'success', 'message': 'Session cleared'})
 
-@app.route('/history')
-def view_history():
-    """Display transcription history if Supabase is configured."""
+@app.route('/subtitle/<file_id>.<format>')
+def download_from_storage(file_id, format):
+    """
+    Download a file directly from Supabase storage and then delete it.
+    """
     if not SUPABASE_CONFIGURED:
-        return render_template('history_disabled.html')
-    
-    try:
-        # Get recent transcriptions from Supabase
-        transcriptions = supabase_client.get_recent_transcriptions(limit=50)
-        return render_template('history.html', transcriptions=transcriptions)
-    except Exception as e:
-        logger.error(f"Error retrieving history: {str(e)}")
-        return render_template('history.html', transcriptions=[], error=str(e))
-
-@app.route('/history/<transcription_id>')
-def transcription_detail(transcription_id):
-    """Display details for a specific transcription."""
-    if not SUPABASE_CONFIGURED:
-        return render_template('history_disabled.html')
-    
-    try:
-        # Get transcription details from Supabase
-        transcription = supabase_client.get_transcription_by_id(transcription_id)
-        if not transcription:
-            return render_template('transcription_not_found.html', transcription_id=transcription_id)
+        return jsonify({'error': 'Supabase storage not configured'}), 400
         
-        return render_template('transcription_detail.html', transcription=transcription)
-    except Exception as e:
-        logger.error(f"Error retrieving transcription details: {str(e)}")
-        return render_template('transcription_detail.html', transcription=None, error=str(e))
-        
-@app.route('/history/<transcription_id>/download')
-def download_stored_subtitle(transcription_id):
-    """Download a subtitle file that was previously stored in Supabase."""
-    if not SUPABASE_CONFIGURED:
-        return render_template('history_disabled.html')
-    
     try:
-        # Get transcription details from Supabase
-        transcription = supabase_client.get_transcription_by_id(transcription_id)
-        if not transcription:
-            return render_template('transcription_not_found.html', transcription_id=transcription_id)
+        # Get the file content from Supabase
+        content = supabase_client.get_subtitle_file(file_id, format)
+        
+        if not content:
+            return jsonify({'error': 'File not found in storage'}), 404
             
-        # Check if subtitle content is available
-        if not transcription.get('subtitle_content'):
-            logger.error(f"No subtitle content found for transcription ID: {transcription_id}")
-            return render_template('transcription_not_found.html', 
-                                  transcription_id=transcription_id,
-                                  error_message="The subtitle content for this transcription is not available.")
-        
-        # Determine the file extension and MIME type
-        format_type = transcription.get('format', 'srt').lower()
-        if format_type == 'srt':
+        # Determine the mimetype
+        if format == 'srt':
             mimetype = 'application/x-subrip'
-        elif format_type == 'vtt':
+        elif format == 'vtt':
             mimetype = 'text/vtt'
         else:
             mimetype = 'text/plain'
             
-        # Create a suitable filename
-        original_filename = transcription.get('file_name', 'subtitle')
-        # Remove any path information for security
-        safe_filename = os.path.basename(original_filename)
-        # Remove the extension if it exists
-        base_filename = os.path.splitext(safe_filename)[0]
-        # Create the final filename with the correct format extension
-        filename = f"{base_filename}.{format_type}"
-        
-        # Create a temporary file with the content
+        # Create a temporary file for download
         temp_file = tempfile.NamedTemporaryFile(delete=False)
-        temp_file.write(transcription['subtitle_content'].encode('utf-8'))
+        temp_file.write(content.encode('utf-8'))
         temp_file.close()
         
-        logger.info(f"Sending subtitle file: {filename} for transcription ID: {transcription_id}")
+        # Set filename
+        filename = f"subtitle.{format}"
+            
+        # Schedule file for deletion after download
+        session['last_downloaded_file_id'] = file_id
+        session['last_downloaded_file_format'] = format
         
         return send_file(
             temp_file.name,
@@ -279,8 +300,8 @@ def download_stored_subtitle(transcription_id):
         )
         
     except Exception as e:
-        logger.error(f"Error downloading subtitle file: {str(e)}")
-        return jsonify({'error': f'An error occurred while retrieving your subtitle file: {str(e)}'}), 500
+        logger.error(f"Error downloading file from storage: {str(e)}")
+        return jsonify({'error': f'An error occurred while retrieving the file: {str(e)}'}), 500
         
 @app.errorhandler(413)
 def request_entity_too_large(error):
@@ -294,13 +315,13 @@ def inject_global_vars():
         'SUPABASE_CONFIGURED': SUPABASE_CONFIGURED
     }
 
-# Initialize Supabase tables if needed
+# Initialize Supabase storage if needed
 if SUPABASE_CONFIGURED:
     try:
-        supabase_client.create_tables_if_not_exist()
-        logger.info("Supabase tables checked/created")
+        supabase_client.create_storage_if_not_exist()
+        logger.info("Supabase storage checked/created")
     except Exception as e:
-        logger.error(f"Error initializing Supabase tables: {str(e)}")
+        logger.error(f"Error initializing Supabase storage: {str(e)}")
 
 if __name__ == "__main__":
     # Create temp folder if it doesn't exist

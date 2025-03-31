@@ -1,13 +1,14 @@
 """
 Supabase client utility for the subtitle generator app.
-This module handles the connection to Supabase and provides
-functions for interacting with the database.
+This module handles storage for subtitle files using Supabase Storage.
 """
 
 import os
 import logging
+import uuid
 from dotenv import load_dotenv
 import re
+import json
 
 # Load environment variables
 load_dotenv()
@@ -71,148 +72,155 @@ if url and key:
 else:
     logger.warning("Supabase URL or key not provided. Supabase features disabled.")
 
-def create_tables_if_not_exist():
+# Constants for storage
+STORAGE_BUCKET_NAME = "subtitle_files"
+
+def create_storage_if_not_exist():
     """
-    Create the necessary tables in Supabase if they don't exist.
+    Create the necessary storage bucket in Supabase if it doesn't exist.
     This is executed when the app starts.
     """
     if not supabase:
-        logger.warning("Supabase client not available, skipping table creation")
+        logger.warning("Supabase client not available, skipping storage bucket creation")
         return
         
     try:
-        # Check if the transcriptions table exists, if not create it
-        logger.info("Checking Supabase tables...")
+        # Try to get buckets to check if our bucket exists
+        logger.info("Checking Supabase storage buckets...")
         
-        # For newer versions of supabase-py, we can't execute raw SQL directly this way
-        # Instead, we'll check if the table exists and create it if needed
         try:
-            # Try to query the table to see if it exists
-            supabase.table("transcriptions").select("count", count="exact").limit(1).execute()
-            logger.info("Transcriptions table exists")
-        except Exception as table_error:
-            # If we get an error, the table might not exist
-            logger.warning(f"Error querying transcriptions table: {table_error}")
-            logger.info("Attempting to create transcriptions table via REST API")
+            # List buckets to see if ours exists
+            buckets = supabase.storage.list_buckets()
+            bucket_exists = any(bucket.name == STORAGE_BUCKET_NAME for bucket in buckets)
             
-            # Create the table by inserting a dummy record with all fields
-            # This is a workaround since we can't execute raw SQL directly
-            try:
-                supabase.table("transcriptions").insert({
-                    "file_name": "initialization_record",
-                    "language": "system",
-                    "model": "system",
-                    "task": "system",
-                    "format": "system",
-                    "preview": "This is a dummy record created to initialize the table.",
-                    "subtitle_content": "Initialization record - safe to delete",
-                }).execute()
-                logger.info("Successfully created transcriptions table")
+            if not bucket_exists:
+                # Create new bucket for subtitle files
+                supabase.storage.create_bucket(STORAGE_BUCKET_NAME, {"public": False})
+                logger.info(f"Created storage bucket: {STORAGE_BUCKET_NAME}")
+            else:
+                logger.info(f"Storage bucket {STORAGE_BUCKET_NAME} already exists")
                 
-                # Now delete the dummy record
-                response = supabase.table("transcriptions").delete().eq("file_name", "initialization_record").execute()
-                logger.info(f"Removed initialization record: {response.data}")
-            except Exception as create_error:
-                logger.error(f"Failed to create transcriptions table: {create_error}")
-                raise
-        
-        logger.info("Supabase tables checked/created")
+        except Exception as bucket_error:
+            logger.error(f"Error checking/creating storage bucket: {bucket_error}")
+            raise
+            
+        logger.info("Supabase storage checked/created")
     except Exception as e:
-        logger.error(f"Error creating tables in Supabase: {e}")
+        logger.error(f"Error setting up Supabase storage: {e}")
         # We'll continue anyway and let the app work without Supabase if there's an issue
 
-def save_transcription(file_name, original_language, model_used, task_type, format_type, content_preview, subtitle_content):
+def upload_subtitle_file(file_content, file_format, original_filename, metadata=None):
     """
-    Save a transcription record to the database.
+    Upload a subtitle file to Supabase Storage.
     
     Args:
-        file_name: Original file name
-        original_language: Detected or selected language
-        model_used: Whisper model size used (tiny, base, etc.)
-        task_type: "transcribe" or "translate"
-        format_type: "srt", "vtt", or "txt"
-        content_preview: Short preview of the transcription content
-        subtitle_content: The complete subtitle content
-    
+        file_content: The content of the subtitle file
+        file_format: Format extension (srt, vtt, txt)
+        original_filename: Original filename for reference
+        metadata: Additional metadata to store with the file
+        
     Returns:
-        The ID of the inserted record or None if an error occurred
+        A dictionary with file_id and download_url or None if upload failed
     """
     if not supabase:
-        logger.warning("Supabase client not available, skipping save_transcription")
+        logger.warning("Supabase client not available, skipping file upload")
         return None
         
     try:
-        # Truncate preview to avoid too large records
-        if content_preview and len(content_preview) > 1000:
-            content_preview = content_preview[:997] + "..."
+        # Generate a unique ID for the file
+        file_id = str(uuid.uuid4())
+        
+        # Create a filename with the correct extension
+        storage_filename = f"{file_id}.{file_format}"
+        
+        # Prepare metadata to store with the file
+        file_metadata = {
+            "original_filename": original_filename,
+            "format": file_format,
+            "created_at": "",  # Will be set by Supabase
+            "auto_delete": True  # Flag to indicate this file should be deleted after download
+        }
+        
+        # Add any additional metadata
+        if metadata:
+            file_metadata.update(metadata)
             
-        response = supabase.table("transcriptions").insert({
-            "file_name": file_name,
-            "language": original_language,
-            "model": model_used,
-            "task": task_type,
-            "format": format_type,
-            "preview": content_preview,
-            "subtitle_content": subtitle_content,
-            "created_at": "now()"  # Supabase will convert this to the current timestamp
-        }).execute()
+        # Convert metadata to JSON string
+        metadata_json = json.dumps(file_metadata)
         
-        if len(response.data) > 0:
-            return response.data[0]["id"]
-        return None
+        # Upload file to storage
+        result = supabase.storage.from_(STORAGE_BUCKET_NAME).upload(
+            storage_filename,
+            file_content.encode('utf-8'),
+            {"content-type": f"text/{file_format}", "x-upsert": "true", "metadata": metadata_json}
+        )
+        
+        # Get public URL (will need signed URLs for private buckets)
+        file_url = supabase.storage.from_(STORAGE_BUCKET_NAME).get_public_url(storage_filename)
+        
+        return {
+            "file_id": file_id,
+            "storage_filename": storage_filename,
+            "download_url": file_url
+        }
     except Exception as e:
-        logger.error(f"Error saving transcription to Supabase: {e}")
+        logger.error(f"Error uploading file to Supabase storage: {e}")
         return None
 
-def get_recent_transcriptions(limit=10):
+def get_subtitle_file(file_id, file_format):
     """
-    Get recent transcriptions from the database.
+    Get a subtitle file from Supabase Storage.
     
     Args:
-        limit: Maximum number of records to return
+        file_id: The unique ID of the file
+        file_format: The file format extension
         
     Returns:
-        List of transcription records, ordered by creation date (newest first)
+        The file content as a string or None if not found
     """
     if not supabase:
-        logger.warning("Supabase client not available, returning empty transcription list")
-        return []
-        
-    try:
-        response = supabase.table("transcriptions") \
-            .select("*") \
-            .order("created_at", desc=True) \
-            .limit(limit) \
-            .execute()
-        
-        return response.data
-    except Exception as e:
-        logger.error(f"Error retrieving transcriptions from Supabase: {e}")
-        return []
-
-def get_transcription_by_id(transcription_id):
-    """
-    Get a specific transcription by ID.
-    
-    Args:
-        transcription_id: The ID of the transcription to retrieve
-        
-    Returns:
-        The transcription record or None if not found
-    """
-    if not supabase:
-        logger.warning("Supabase client not available, cannot retrieve transcription")
+        logger.warning("Supabase client not available, cannot retrieve file")
         return None
         
     try:
-        response = supabase.table("transcriptions") \
-            .select("*") \
-            .eq("id", transcription_id) \
-            .execute()
+        # Construct the filename
+        storage_filename = f"{file_id}.{file_format}"
         
-        if len(response.data) > 0:
-            return response.data[0]
-        return None
+        # Download the file
+        result = supabase.storage.from_(STORAGE_BUCKET_NAME).download(storage_filename)
+        
+        # Decode the content
+        content = result.decode('utf-8')
+        
+        return content
     except Exception as e:
-        logger.error(f"Error retrieving transcription from Supabase: {e}")
+        logger.error(f"Error downloading file from Supabase storage: {e}")
         return None
+
+def delete_subtitle_file(file_id, file_format):
+    """
+    Delete a subtitle file from Supabase Storage.
+    
+    Args:
+        file_id: The unique ID of the file
+        file_format: The file format extension
+        
+    Returns:
+        True if deleted successfully, False otherwise
+    """
+    if not supabase:
+        logger.warning("Supabase client not available, cannot delete file")
+        return False
+        
+    try:
+        # Construct the filename
+        storage_filename = f"{file_id}.{file_format}"
+        
+        # Delete the file
+        supabase.storage.from_(STORAGE_BUCKET_NAME).remove([storage_filename])
+        
+        logger.info(f"Deleted file from storage: {storage_filename}")
+        return True
+    except Exception as e:
+        logger.error(f"Error deleting file from Supabase storage: {e}")
+        return False
