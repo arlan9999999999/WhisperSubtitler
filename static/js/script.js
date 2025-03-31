@@ -335,7 +335,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             showAlert('Success', `Subtitles downloaded in ${format.toUpperCase()} format.`, 'success');
             
-            // Delete the file from Supabase storage after download
+            // Delete the file from Gofile storage after download
             setTimeout(() => {
                 fetch('/download-complete', {
                     method: 'POST'

@@ -6,7 +6,7 @@ from flask import Flask, render_template, request, jsonify, send_file, session, 
 from werkzeug.utils import secure_filename
 import whisper_utils
 import subtitle_formatter
-import supabase_client  # Import Supabase client
+import gofile_client  # Import Gofile client
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -24,8 +24,8 @@ MAX_CONTENT_LENGTH = 200 * 1024 * 1024  # 200MB max file size
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = MAX_CONTENT_LENGTH
 
-# Check if Supabase is properly configured
-SUPABASE_CONFIGURED = bool(os.environ.get("SUPABASE_URL") and os.environ.get("SUPABASE_KEY"))
+# Check if Gofile token is properly configured
+GOFILE_CONFIGURED = bool(os.environ.get("GOFILE_ACCOUNT_TOKEN") or "zlIFYhO5jHt5kVnN6Orit3jM0hEZA8LX")
 
 # Helper functions
 def allowed_file(filename):
@@ -146,9 +146,9 @@ def download_subtitles():
         else:
             return jsonify({'error': f'Unsupported subtitle format: {subtitle_format}'}), 400
         
-        # Upload to Supabase storage if configured
-        supabase_file_info = None
-        if SUPABASE_CONFIGURED:
+        # Upload to Gofile storage if configured
+        gofile_info = None
+        if GOFILE_CONFIGURED:
             try:
                 # Get language info from result
                 detected_language = result.get('language', 'unknown')
@@ -162,23 +162,22 @@ def download_subtitles():
                     "task": task
                 }
                 
-                # Upload to Supabase storage
-                supabase_file_info = supabase_client.upload_subtitle_file(
+                # Upload to Gofile storage
+                gofile_info = gofile_client.upload_subtitle_file(
                     file_content=content,
                     file_format=subtitle_format,
                     original_filename=original_filename,
                     metadata=metadata
                 )
                 
-                if supabase_file_info:
+                if gofile_info:
                     # Store file ID in session to allow deletion after download
-                    session['last_uploaded_file_id'] = supabase_file_info['file_id']
-                    session['last_uploaded_file_format'] = subtitle_format
-                    logger.info(f"File uploaded to Supabase storage: {supabase_file_info['storage_filename']}")
+                    session['last_uploaded_file_id'] = gofile_info['file_id']
+                    logger.info(f"File uploaded to Gofile storage with ID: {gofile_info['file_id']}")
                 
-            except Exception as se:
-                logger.error(f"Supabase storage error: {str(se)}")
-                # Continue with download even if Supabase fails
+            except Exception as ge:
+                logger.error(f"Gofile storage error: {str(ge)}")
+                # Continue with download even if Gofile fails
         
         # Create temporary file for download
         temp_file = tempfile.NamedTemporaryFile(delete=False)
@@ -199,26 +198,24 @@ def download_subtitles():
 @app.route('/download-complete', methods=['POST'])
 def download_complete():
     """
-    Endpoint to call after a download is complete to trigger deletion of the file from Supabase.
+    Endpoint to call after a download is complete to trigger deletion of the file from Gofile.
     """
-    if not SUPABASE_CONFIGURED:
-        return jsonify({'status': 'skipped', 'message': 'Supabase not configured'}), 200
+    if not GOFILE_CONFIGURED:
+        return jsonify({'status': 'skipped', 'message': 'Gofile not configured'}), 200
         
     try:
         # Check if we have a file to delete
         file_id = session.get('last_uploaded_file_id')
-        file_format = session.get('last_uploaded_file_format')
         
-        if not file_id or not file_format:
+        if not file_id:
             return jsonify({'status': 'skipped', 'message': 'No file to delete'}), 200
             
-        # Delete the file from Supabase storage
-        success = supabase_client.delete_subtitle_file(file_id, file_format)
+        # Delete the file from Gofile storage
+        success = gofile_client.delete_subtitle_file(file_id)
         
         if success:
             # Clear the file info from session
             session.pop('last_uploaded_file_id', None)
-            session.pop('last_uploaded_file_format', None)
             
             return jsonify({
                 'status': 'success', 
@@ -243,65 +240,34 @@ def clear_session():
         except Exception as e:
             logger.warning(f"Error removing temp file: {str(e)}")
     
-    # Delete any stored files from Supabase if they exist
-    if SUPABASE_CONFIGURED and 'last_uploaded_file_id' in session:
+    # Delete any stored files from Gofile if they exist
+    if GOFILE_CONFIGURED and 'last_uploaded_file_id' in session:
         try:
             file_id = session.get('last_uploaded_file_id')
-            file_format = session.get('last_uploaded_file_format')
-            if file_id and file_format:
-                supabase_client.delete_subtitle_file(file_id, file_format)
-                logger.info(f"Deleted file from Supabase storage during session clear: {file_id}.{file_format}")
+            if file_id:
+                gofile_client.delete_subtitle_file(file_id)
+                logger.info(f"Deleted file from Gofile storage during session clear: {file_id}")
         except Exception as e:
-            logger.warning(f"Error removing Supabase file during session clear: {str(e)}")
+            logger.warning(f"Error removing Gofile file during session clear: {str(e)}")
     
     session.clear()
     return jsonify({'status': 'success', 'message': 'Session cleared'})
 
-@app.route('/subtitle/<file_id>.<format>')
-def download_from_storage(file_id, format):
+@app.route('/subtitle-link/<file_id>')
+def get_subtitle_link(file_id):
     """
-    Download a file directly from Supabase storage and then delete it.
+    Redirect to the Gofile download page for the specified file ID.
     """
-    if not SUPABASE_CONFIGURED:
-        return jsonify({'error': 'Supabase storage not configured'}), 400
+    if not GOFILE_CONFIGURED:
+        return jsonify({'error': 'Gofile storage not configured'}), 400
         
     try:
-        # Get the file content from Supabase
-        content = supabase_client.get_subtitle_file(file_id, format)
-        
-        if not content:
-            return jsonify({'error': 'File not found in storage'}), 404
-            
-        # Determine the mimetype
-        if format == 'srt':
-            mimetype = 'application/x-subrip'
-        elif format == 'vtt':
-            mimetype = 'text/vtt'
-        else:
-            mimetype = 'text/plain'
-            
-        # Create a temporary file for download
-        temp_file = tempfile.NamedTemporaryFile(delete=False)
-        temp_file.write(content.encode('utf-8'))
-        temp_file.close()
-        
-        # Set filename
-        filename = f"subtitle.{format}"
-            
-        # Schedule file for deletion after download
-        session['last_downloaded_file_id'] = file_id
-        session['last_downloaded_file_format'] = format
-        
-        return send_file(
-            temp_file.name,
-            as_attachment=True,
-            download_name=filename,
-            mimetype=mimetype
-        )
+        # Just redirect to the Gofile direct link
+        return redirect(f"https://gofile.io/d/{file_id}")
         
     except Exception as e:
-        logger.error(f"Error downloading file from storage: {str(e)}")
-        return jsonify({'error': f'An error occurred while retrieving the file: {str(e)}'}), 500
+        logger.error(f"Error getting download link: {str(e)}")
+        return jsonify({'error': f'An error occurred while retrieving the download link: {str(e)}'}), 500
         
 @app.errorhandler(413)
 def request_entity_too_large(error):
@@ -312,16 +278,8 @@ def request_entity_too_large(error):
 def inject_global_vars():
     """Inject global variables into all templates."""
     return {
-        'SUPABASE_CONFIGURED': SUPABASE_CONFIGURED
+        'GOFILE_CONFIGURED': GOFILE_CONFIGURED
     }
-
-# Initialize Supabase storage if needed
-if SUPABASE_CONFIGURED:
-    try:
-        supabase_client.create_storage_if_not_exist()
-        logger.info("Supabase storage checked/created")
-    except Exception as e:
-        logger.error(f"Error initializing Supabase storage: {str(e)}")
 
 if __name__ == "__main__":
     # Create temp folder if it doesn't exist

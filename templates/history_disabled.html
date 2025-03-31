@@ -12,29 +12,15 @@
             
             <div class="card p-5 shadow mx-auto" style="max-width: 800px;">
                 <div class="card-body">
-                    <h3 class="card-title mb-4">Supabase Configuration Required</h3>
-                    <p class="card-text lead">The subtitle storage feature requires Supabase to store your transcriptions and subtitle files for later retrieval.</p>
+                    <h3 class="card-title mb-4">Gofile Configuration Required</h3>
+                    <p class="card-text lead">The subtitle storage feature requires Gofile to store your subtitle files for secure access and sharing.</p>
                     
                     <div class="alert alert-info my-4">
                         <h5 class="alert-heading">To enable this feature:</h5>
                         <ol class="text-start mt-3">
-                            <li>Create a free Supabase account at <a href="https://supabase.com" target="_blank">supabase.com</a></li>
-                            <li>Create a new project</li>
-                            <li>Create a table named <code>transcriptions</code> with the following columns:
-                                <ul>
-                                    <li><code>id</code> (type: uuid, primary key)</li>
-                                    <li><code>file_name</code> (type: text)</li>
-                                    <li><code>language</code> (type: text)</li>
-                                    <li><code>model</code> (type: text)</li>
-                                    <li><code>task</code> (type: text)</li>
-                                    <li><code>format</code> (type: text)</li>
-                                    <li><code>preview</code> (type: text)</li>
-                                    <li><code>subtitle_content</code> (type: text)</li>
-                                    <li><code>created_at</code> (type: timestamp with time zone, default: now())</li>
-                                </ul>
-                            </li>
-                            <li>Get your Supabase URL and API key from the project settings</li>
-                            <li>Set the environment variables <code>SUPABASE_URL</code> and <code>SUPABASE_KEY</code></li>
+                            <li>Create a free Gofile account at <a href="https://gofile.io" target="_blank">gofile.io</a></li>
+                            <li>Get your Gofile API token from your account settings</li>
+                            <li>Set the environment variable <code>GOFILE_ACCOUNT_TOKEN</code> with your API token</li>
                         </ol>
                     </div>
                     
